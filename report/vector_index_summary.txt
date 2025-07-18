@@ -1,0 +1,9 @@
+📁 Files processed: 17
+📄 Chunks created: 1504
+⏱️ Time taken: 2.68 seconds
+📊 Vector DB stats: {
+  "total_documents": 1504,
+  "collection_name": "biomedical_docs",
+  "persist_directory": "./vector_db",
+  "dimension": 384
+}
