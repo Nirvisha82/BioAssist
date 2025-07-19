@@ -1,0 +1,207 @@
+{
+    "convo1": [
+        {
+            "user": "Hello!",
+            "bot": "Hello! \ud83d\udc4b It's great to hear from you! I'm BioAssist, and I'm here to help you with your healthcare and medical questions. I'm designed to be a friendly and informative resource. How can I help you today?",
+            "sources": [],
+            "metrics": {
+                "generation_time": 0.829,
+                "prompt_len": 304,
+                "response_tokens": 37,
+                "ungrounded_statements": 0,
+                "grounding_ratio": 1.0,
+                "hallucination_flag": false
+            },
+            "note": null
+        },
+        {
+            "user": "What is Breast Cancer?",
+            "bot": "Breast cancer is a disease where cells in the breast grow out of control, forming a tumor. It's a type of cancer that starts in the breast tissue and can occur in one or both breasts. After skin cancer, breast cancer is the most common cancer diagnosed.\n\nThe provided documents also mention that:\n\n*   Breast cancer is a worldwide public health concern and is the most common tumor globally.\n*   It's a leading cause of mortality among women, particularly post-menopausal women.\n*   Breast cancer can be life-threatening.",
+            "sources": [
+                [
+                    "Local",
+                    "Breast_Cancer.pdf",
+                    0.6283683776855469
+                ],
+                [
+                    "Local",
+                    "Breast_Cancer.pdf",
+                    0.6191760897636414
+                ],
+                [
+                    "Local",
+                    "Breast_Cancer.pdf",
+                    0.61434006690979
+                ],
+                [
+                    "Local",
+                    "Breast_Cancer.pdf",
+                    0.6072875261306763
+                ],
+                [
+                    "Local",
+                    "Breast_Cancer.pdf",
+                    0.6018382906913757
+                ],
+                [
+                    "Web",
+                    "https://en.wikipedia.org/wiki/Breast_cancer",
+                    null
+                ],
+                [
+                    "Web",
+                    "https://www.cancer.org/cancer/types/breast-cancer/about/what-is-breast-cancer.html",
+                    null
+                ],
+                [
+                    "Web",
+                    "https://www.mayoclinic.org/diseases-conditions/breast-cancer/symptoms-causes/syc-20352470",
+                    null
+                ],
+                [
+                    "Web",
+                    "https://my.clevelandclinic.org/health/diseases/3986-breast-cancer",
+                    null
+                ],
+                [
+                    "Web",
+                    "https://www.cdc.gov/breast-cancer/about/index.html",
+                    null
+                ]
+            ],
+            "metrics": {
+                "retrieval_time": 3.405,
+                "generation_time": 1.353,
+                "prompt_len": 10523,
+                "response_tokens": 87,
+                "ungrounded_statements": 0,
+                "grounding_ratio": 1.0,
+                "hallucination_flag": false
+            },
+            "note": null
+        },
+        {
+            "user": "What are the treatment options for it?",
+            "bot": "Breast cancer treatment options depend on the type and stage of the cancer, and may include:\n\n*   **Surgery:** This is a primary treatment option, especially when the cancer hasn't spread.\n    *   **Lumpectomy (breast-conserving surgery):** Removal of the tumor and some surrounding healthy tissue and lymph nodes. It's often followed by radiation therapy.\n    *   **Mastectomy:** Removal of the entire breast to reduce the risk of cancer development.\n*   **Radiation Therapy:** High-energy rays are used to kill cancer cells. It may be used after surgery to eliminate remaining cancer cells. Brachytherapy is a type of radiation therapy that directs radiation to the area around the cancer.\n*   **Chemotherapy:** Medicines are used to kill cancer cells. It can be administered before or after surgery and may be used to manage metastatic breast cancer.\n*   **Targeted Therapy:** Treatments that target specific characteristics of cancer cells.\n*   **Hormonal Therapy:** Treatments to block or lower hormone levels that can fuel the growth of some breast cancers.\n*   **Other treatments:** Depending on the situation, other options include the use of herbs and psychosocial mediations to help with the psychological effects of the disease.",
+            "sources": [
+                [
+                    "Local",
+                    "Breast_Cancer.pdf",
+                    0.7117633819580078
+                ],
+                [
+                    "Local",
+                    "Breast_Cancer.pdf",
+                    0.6193229556083679
+                ],
+                [
+                    "Local",
+                    "Breast_Cancer.pdf",
+                    0.6121619939804077
+                ],
+                [
+                    "Local",
+                    "Breast_Cancer.pdf",
+                    0.5921463370323181
+                ],
+                [
+                    "Local",
+                    "Breast_Cancer.pdf",
+                    0.5808172821998596
+                ],
+                [
+                    "Web",
+                    "https://www.cancer.org/cancer/types/breast-cancer/treatment.html",
+                    null
+                ],
+                [
+                    "Web",
+                    "https://www.mayoclinic.org/diseases-conditions/breast-cancer/diagnosis-treatment/drc-20352475",
+                    null
+                ],
+                [
+                    "Web",
+                    "https://www.cancer.gov/types/breast/patient/breast-treatment-pdq",
+                    null
+                ],
+                [
+                    "Web",
+                    "https://www.cdc.gov/breast-cancer/treatment/index.html",
+                    null
+                ],
+                [
+                    "Web",
+                    "https://www.cancercenter.com/cancer-types/breast-cancer/treatments",
+                    null
+                ]
+            ],
+            "metrics": {
+                "retrieval_time": 2.788,
+                "generation_time": 2.035,
+                "prompt_len": 10298,
+                "response_tokens": 186,
+                "ungrounded_statements": 1,
+                "grounding_ratio": 0.92,
+                "hallucination_flag": false
+            },
+            "note": null
+        }
+    ],
+    "convo2": [
+        {
+            "user": "What is haemrrhoids?",
+            "bot": "Hemorrhoids, also known as piles, are vascular structures located in the anal canal. In their normal state, they function as cushions that aid in stool control. However, they can become swollen and distended, similar to varicose veins in the legs, leading to the condition we commonly refer to as hemorrhoids.",
+            "sources": [
+                [
+                    "Web",
+                    "https://en.wikipedia.org/wiki/Hemorrhoid",
+                    null
+                ],
+                [
+                    "Web",
+                    "https://www.mayoclinic.org/diseases-conditions/hemorrhoids/symptoms-causes/syc-20360268",
+                    null
+                ],
+                [
+                    "Web",
+                    "https://www.health.harvard.edu/diseases-and-conditions/hemorrhoids_and_what_to_do_about_them",
+                    null
+                ],
+                [
+                    "Web",
+                    "https://www.nm.org/healthbeat/healthy-tips/do-i-have-hemorrhoids-or-something-else",
+                    null
+                ],
+                [
+                    "Web",
+                    "https://www.hopkinsmedicine.org/health/conditions-and-diseases/hemorrhoids",
+                    null
+                ]
+            ],
+            "metrics": {
+                "retrieval_time": 2.554,
+                "generation_time": 0.793,
+                "prompt_len": 1480,
+                "response_tokens": 50,
+                "ungrounded_statements": 0,
+                "grounding_ratio": 1.0,
+                "hallucination_flag": false
+            },
+            "note": "Used web search fallback."
+        },
+        {
+            "user": "Who is taylor swift?",
+            "bot": "\u26a0\ufe0f Sorry, I can only answer biomedical, clinical, or healthcare-related questions.",
+            "sources": [],
+            "metrics": {
+                "generation_time": 0.0,
+                "prompt_len": 0,
+                "response_tokens": 0,
+                "ungrounded_statements": 0,
+                "grounding_ratio": 1.0,
+                "hallucination_flag": false
+            },
+            "note": null
+        }
+    ]
+}

@@ -1,12 +1,11 @@
-# Windows-compatible requirements with pre-compiled wheels
 # Core LLM and RAG dependencies
 langchain>=0.1.0
 langchain-community>=0.0.10
 langchain-google-genai>=0.0.5
 google-generativeai>=0.3.0
 
-# Vector Database (use older version for Windows compatibility)
-chromadb>=0.4.0
+# Vector Database
+faiss-cpu
 
 # Document Processing
 pypdf>=4.0.0
@@ -17,16 +16,16 @@ python-pptx>=0.6.20
 docx2txt
 tiktoken
 
-# Embeddings (use compatible version)
+# Embeddings
 sentence-transformers>=2.2.0
 
-# Web Interface - Streamlit Only
+# Web Interface 
 streamlit>=1.30.0
 
 # Web Search
 requests>=2.31.0
 beautifulsoup4>=4.12.0
-duckduckgo-search>=4.1.0
+ddgs
 
 # Utilities
 python-dotenv>=1.0.0

@@ -5,14 +5,14 @@ import streamlit as st
 import google.generativeai as genai
 from src.retrieval.rag_pipeline import RAGPipeline
 from src.utils.config_manager import ConfigManager
-from src.utils.helpers import guardrail, rewrite_query, verify_grounding
+from src.utils.helpers import guardrail, rewrite_query, verify_grounding, split_sentences
 from src.ingestion.vector_db_manager import VectorDBFactory
 from loguru import logger
 
 # Setup pipeline & model
 config = ConfigManager(config_path="config/config.yaml")
 
-STORAGE_DIR = "data"
+STORAGE_DIR = "conversation_data"
 CONVO_FILE = os.path.join(STORAGE_DIR, "conversations.json")
 MIN_LOCAL_SIMILARITY = config.get("retrieval.similarity_threshold")  # threshold for local document relevance
 
@@ -56,7 +56,7 @@ gemini_model = setup_gemini()
 logger.info("Pipeline Setup Complete")
 
 # Prompt builder
-def build_prompt(chat_history, query, kb_chunks, web_chunks, re_written_query=""):
+def build_prompt(chat_history, query, kb_chunks, web_chunks, re_written_query):
     KB_ctx = "\n".join([f"• {c.content}" for c in kb_chunks])
     WEB_ctx = "\n".join([f"• {w.snippet}" for w in web_chunks])
     hist   = "\n".join([f"User: {t['user']}\nAssistant: {t['bot']}" for t in chat_history])
@@ -64,6 +64,7 @@ def build_prompt(chat_history, query, kb_chunks, web_chunks, re_written_query=""
 [System]:
 You are BioAssist, a biomedical AI assistant.
 Use both local documents and live web search to provide a detailed answer unless specified otherwise.
+If you are giving a question that is no-where related to you or medical field, deny the answer politely and re-state your capabilities.
 
 
 [Chat History]:
@@ -75,13 +76,13 @@ Use both local documents and live web search to provide a detailed answer unless
 [Web Context]:
 {WEB_ctx}
 
-User Question: {query}
+User Question: {re_written_query}
 Answer:
 """
 
 # <--------------------- Streamlit layout ------------->
 st.set_page_config(page_title="Bio Assist")
-st.markdown('<div class="big-title">🧠 BioAssist - Your Biomedical Web‑Enabled RAG Chatbot</div>', unsafe_allow_html=True)
+st.markdown('<div class="big-title">🧠 BioAssist - Biomedical Web‑Search Enabled RAG Chatbot</div>', unsafe_allow_html=True)
 
 # --- Custom CSS to tighten the UI ---
 st.markdown("""
@@ -114,73 +115,108 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Main chat input
+def is_greeting_or_self_reference(query_text):
+            # Clean the query by removing punctuation and converting to lowercase
+            import re
+            query_clean = re.sub(r'[!?.,]', '', query_text.lower().strip())
+            
+            # Common greetings (without punctuation)
+            greetings = [
+                "hello", "hi", "hey", "good morning", "good afternoon", "good evening",
+                "thank you", "thanks", "bye", "goodbye", "how are you", "how are you doing"
+            ]
+            
+            # Self-reference questions (without punctuation)
+            self_reference = [
+                "who are you", "what are you", "what can you do", "what do you do",
+                "tell me about yourself", "introduce yourself", "hello", "hi", "hey", "good morning", "good afternoon", "good evening",
+                "thank you", "thanks", "bye", "goodbye", "how are you", "how are you doing"
+            ]
+            
+            # Check if cleaned query matches any greeting or self-reference
+            if query_clean in greetings + self_reference:
+                return True
+            
+            # Check if query contains "bioassist" (referring to the bot)
+            if "bioassist" in query_text.lower():
+                return True
+                
+            return False
+
 query = st.chat_input("Ask a question...")
 if query:
     with st.spinner("Processing..."):
         t0 = time.time()
 
-        # rewrite
-        rewritten = rewrite_query(gemini_model, st.session_state.chat_history, query)
-
-        # init placeholders
+        # initialize
         sources = []
         metrics = {}
         fallback_note = None
+        response_text = None
 
-
-        SELF_QUES = "The user is asking about BioAssist Chatbot about myself."
-        if rewritten.strip() == SELF_QUES:
-            # Let the LLM generate a natural greeting
+        if is_greeting_or_self_reference(query):
             greeting_prompt = f"""
             You are BioAssist, a friendly biomedical AI assistant.
-            The user just asked: "{query}"
-            Please reply in a warm, conversational tone—no citations or web searches.
+            The user just said: \"{query}\"
+            Please reply warmly and introduce yourself as a biomedical AI assistant that helps with healthcare and medical questions.
+            Keep it conversational and friendly.
             """
             t1 = time.time()
             res = gemini_model.generate_content(greeting_prompt)
             t2 = time.time()
             response_text = res.text.strip()
 
-            # record minimal metrics and no sources
+            kb_chunks = []
+            web_chunks = []
             sources = []
+            fallback_note = None
             metrics = {
                 "generation_time": round(t2 - t1, 3),
                 "prompt_len": len(greeting_prompt),
                 "response_tokens": len(response_text.split()),
+                "ungrounded_statements": 0,
+                "grounding_ratio": 1.0,
+                "hallucination_flag": False
             }
-
-        # Non‑medical scope guardrail
-        elif not guardrail(gemini_model, rewritten):
-            response_text = "I'm sorry, I can only answer biomedical queries."
+        # STEP 2: Apply guardrail to ORIGINAL query with chat history context
+        elif not guardrail(gemini_model, query, st.session_state.chat_history):
+            response_text = "⚠️ Sorry, I can only answer biomedical, clinical, or healthcare-related questions."
             kb_chunks = []
             web_chunks = []
+            sources = []
+            fallback_note = None
+            metrics = {
+                "generation_time": 0.0,
+                "prompt_len": 0,
+                "response_tokens": 0,
+                "ungrounded_statements": 0,
+                "grounding_ratio": 1.0,
+                "hallucination_flag": False
+            }
 
+        # STEP 3: Normal biomedical query - rewrite for retrieval
         else:
-            # Relevant not interaction query.
-            # local retrieval
+            # Now rewrite the query for better retrieval (since we know it's medical)
+            rewritten = rewrite_query(gemini_model, st.session_state.chat_history, query)
+            
             kb_chunks = pipeline._retrieve_from_kb(rewritten)
-
-            # evaluate best local score
             best_score = max((c.similarity_score for c in kb_chunks), default=0.0)
+
             if best_score < MIN_LOCAL_SIMILARITY:
                 st.info(f"🔎 Local matches below {MIN_LOCAL_SIMILARITY:.2f}; falling back to web search.")
                 kb_chunks = []
                 web_chunks = pipeline._retrieve_from_web(rewritten)
                 fallback_note = "Used web search fallback."
             else:
-                # filter out low-confidence docs
                 kb_chunks = [c for c in kb_chunks if c.similarity_score >= MIN_LOCAL_SIMILARITY]
                 web_chunks = pipeline._retrieve_from_web(rewritten)
                 fallback_note = None
 
-            # record sources
             for c in kb_chunks:
                 sources.append(("Local", c.source_document, c.similarity_score))
             for w in web_chunks:
                 sources.append(("Web", w.source, None))
 
-            # build prompt & call LLM
             prompt = build_prompt(
                 st.session_state.chat_history,
                 query,
@@ -188,28 +224,36 @@ if query:
                 web_chunks,
                 rewritten
             )
+
             t1 = time.time()
             res = gemini_model.generate_content(prompt)
             t2 = time.time()
             response_text = res.text.strip()
-            contexts = [c.content for c in kb_chunks] + [w.snippet for w in web_chunks]
-            # unsupported= verify_grounding(response_text, contexts,gemini_model)
-           
 
-            # if unsupported != []:
-            #     for uns in unsupported:
-            #         print(uns)
-            #     st.warning("⚠️ I’m not fully certain about these statements. Fact Check them.")
-        
-            # record metrics
+            contexts = [c.content for c in kb_chunks] + [w.snippet for w in web_chunks]
+            unsupported = verify_grounding(response_text, contexts, gemini_model)
+            total_sentences = len(split_sentences(response_text))
+            grounding_ratio = 1 - (len(unsupported) / max(1, total_sentences))
+            hallucination_flag = grounding_ratio < 0.85
+
+            if hallucination_flag:
+                st.warning("⚠️ BioAssist detected some potentially ungrounded statements:")
+                for idx, sent in enumerate(unsupported, 1):
+                    st.markdown(f"✖️ {sent}")
+            else:
+                st.success("✅ All statements appear grounded.")
+
             metrics = {
                 "retrieval_time": round(t1 - t0, 3),
                 "generation_time": round(t2 - t1, 3),
                 "prompt_len": len(prompt),
                 "response_tokens": len(response_text.split()),
+                "ungrounded_statements": len(unsupported),
+                "grounding_ratio": round(grounding_ratio, 2),
+                "hallucination_flag": hallucination_flag
             }
 
-        # append and persist
+        # Record conversation turn
         turn = {
             "user": query,
             "bot": response_text,
@@ -307,6 +351,10 @@ for t in st.session_state.chat_history:
         with st.expander("Performance Metrics", expanded=False):
             for k, v in t['metrics'].items():
                 st.write(f"{k}: {v}")
+
+        if t['metrics'].get("hallucination_flag"):
+            st.error("Hallucination detected in the response.")
+
         # fallback note
         if t.get('note'):
             st.info(t['note'])

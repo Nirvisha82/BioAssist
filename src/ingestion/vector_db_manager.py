@@ -8,9 +8,6 @@ from abc import ABC, abstractmethod
 import numpy as np
 from tqdm import tqdm
 
-import chromadb
-from chromadb.config import Settings
-from chromadb.utils import embedding_functions
 import faiss
 from loguru import logger
 
@@ -36,134 +33,6 @@ class VectorDBInterface(ABC):
     def get_collection_stats(self) -> Dict[str, Any]:
         """Get statistics about the collection."""
         pass
-
-
-class ChromaDBManager(VectorDBInterface):
-    """ChromaDB implementation for vector storage."""
-    
-    def __init__(self, config: ConfigManager):
-        self.config = config
-        self.persist_directory = config.get("vector_db.persist_directory", "./data/vector_db")
-        self.collection_name = config.get("vector_db.collection_name", "documents")
-        
-        # Create persist directory if it doesn't exist
-        os.makedirs(self.persist_directory, exist_ok=True)
-        
-        # Initialize ChromaDB client
-        self.client = chromadb.PersistentClient(
-            path=self.persist_directory,
-            settings=Settings(
-                anonymized_telemetry=False,
-                allow_reset=True
-            )
-        )
-        
-        # Create or get collection
-        self.collection = self.client.get_or_create_collection(
-            name=self.collection_name,
-            metadata={"hnsw:space": "cosine"}
-        )
-        
-        logger.info(f"Initialized ChromaDB with collection: {self.collection_name}")
-    
-    def add_documents(self, chunks: List[DocumentChunk]) -> None:
-        """Add document chunks to ChromaDB."""
-        print("--Chroma add docs--")
-        try:
-            if not chunks:
-                logger.warning("No chunks provided for indexing")
-                return
-            
-            # Prepare data for ChromaDB
-            ids = [chunk.chunk_id for chunk in chunks]
-            embeddings = [chunk.embedding for chunk in chunks]
-            documents = [chunk.content for chunk in chunks]
-            metadatas = [chunk.metadata for chunk in chunks]
-
-            
-            # Add to collection
-            BATCH_SIZE = 300     # or whatever your system can handle
-            total = len(chunks)
-            for i in range(0, total, BATCH_SIZE):
-                print(f"Batch {i}")
-                batch = chunks[i : i + BATCH_SIZE]
-                ids        = [c.chunk_id   for c in batch]
-                embeddings = [c.embedding  for c in batch]
-                documents  = [c.content    for c in batch]
-                metadatas  = [c.metadata   for c in batch]
-
-                self.collection.add(
-                    ids=ids,
-                    embeddings=embeddings,
-                    documents=documents,
-                    metadatas=metadatas,
-                )
-                logger.info(f"✅ Indexed batch {i}-{min(i+BATCH_SIZE, total)} / {total}")
-            
-            logger.info(f"Added {len(chunks)} chunks to ChromaDB")
-            
-        except Exception as e:
-            logger.error(f"Error adding documents to ChromaDB: {str(e)}")
-            raise
-    
-    def similarity_search(self, query: str, k: int = 5) -> List[RetrievalResult]:
-        """Search for similar documents in ChromaDB."""
-        try:
-            # Generate embedding for query
-            from sentence_transformers import SentenceTransformer
-            embedding_model = SentenceTransformer(
-                self.config.get("embeddings.model_name", "sentence-transformers/all-MiniLM-L6-v2")
-            )
-            query_embedding = embedding_model.encode([query]).tolist()
-            
-            # Search in ChromaDB
-            results = self.collection.query(
-                query_embeddings=query_embedding,
-                n_results=k,
-                include=["documents", "metadatas", "distances"]
-            )
-            
-            # Convert to RetrievalResult objects
-            retrieval_results = []
-            if results['ids'] and results['ids'][0]:
-                for i, chunk_id in enumerate(results['ids'][0]):
-                    retrieval_results.append(RetrievalResult(
-                        chunk_id=chunk_id,
-                        content=results['documents'][0][i],
-                        similarity_score=1.0 - results['distances'][0][i],  # Convert distance to similarity
-                        metadata=results['metadatas'][0][i],
-                        source_document=results['metadatas'][0][i].get('source_file', 'Unknown')
-                    ))
-            
-            logger.info(f"Found {len(retrieval_results)} similar documents")
-            return retrieval_results
-            
-        except Exception as e:
-            logger.error(f"Error searching in ChromaDB: {str(e)}")
-            raise
-    
-    def get_collection_stats(self) -> Dict[str, Any]:
-        """Get statistics about the ChromaDB collection."""
-        try:
-            count = self.collection.count()
-            return {
-                "total_documents": count,
-                "collection_name": self.collection_name,
-                "persist_directory": self.persist_directory
-            }
-        except Exception as e:
-            logger.error(f"Error getting collection stats: {str(e)}")
-            return {}
-    
-    def delete_collection(self) -> None:
-        """Delete the entire collection."""
-        try:
-            self.client.delete_collection(name=self.collection_name)
-            logger.info(f"Deleted collection: {self.collection_name}")
-        except Exception as e:
-            logger.error(f"Error deleting collection: {str(e)}")
-            raise
-
 
 class FAISSManager(VectorDBInterface):
     """FAISS implementation for vector storage."""
@@ -320,15 +189,11 @@ class VectorDBFactory:
         """Create vector database instance based on configuration."""
         db_type = config.get("vector_db.type", "chroma").lower()
         
-        if db_type == "chroma":
-            return ChromaDBManager(config)
-        elif db_type == "faiss":
+        if db_type == "faiss":
             return FAISSManager(config)
         else:
             raise ValueError(f"Unsupported vector database type: {db_type}")
 
-
-class HybridRetriever:
     """Hybrid retriever combining multiple search strategies."""
     
     def __init__(self, vector_db: VectorDBInterface, config: ConfigManager):

@@ -7,9 +7,7 @@ llm:
   temperature: 0.4
   max_tokens: 2000
   top_p: 0.95
-  api_key: "AIzaSyBbSo-JGFZHtEqXnQHdDzeNqC7lt4gIoKs"
-  # api_key: "AIzaSyBbSo-JGFZHtEqXnQHdDzeNqC7lt4gIoKs"
-  # api_key: "AIzaSyBbSo-JGFZHtEqXnQHdDzeNqC7lt4gIoKs"
+  api_key: "AIzaSyAoQqEQYyu5C5B1j_NnyuzjNbx5q48U6-c"
 
 # Embedding Configuration
 embeddings:
@@ -28,7 +26,7 @@ vector_db:
 # Retrieval Configuration
 retrieval:
   top_k: 5
-  similarity_threshold: 0.3
+  similarity_threshold: 0.4
   rerank: true
   max_context_length: 4000
 
@@ -38,32 +36,10 @@ web_search:
   fallback_threshold: 0.5
   max_results: 5
   search_engine: "duckduckgo"
-  
 
 # Document Processing
 document_processing:
   data_source_dir: "./data_source"
   supported_formats: ["pdf", "docx", "txt", "csv"]
   max_file_size_mb: 50
-  text_splitter: "recursive"
-
-# Streamlit Configuration
-streamlit:
-  title: "Climate Change RAG Chatbot"
-  port: 8501
-  chat_history_limit: 50
-  page_config:
-    page_title: "RAG Chatbot"
-    page_icon: "🌍"
-    layout: "wide"
-
-# Safety & Performance
-safety:
-  enable_guardrails: true
-  hallucination_detection: true
-  content_filter: true
-
-performance:
-  enable_caching: true
-  cache_ttl: 3600
 

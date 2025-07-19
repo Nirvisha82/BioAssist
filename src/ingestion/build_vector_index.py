@@ -87,7 +87,7 @@ def build_vector_index():
     print(f"   📊 Vector DB stats: {json.dumps(stats, indent=2)}")
 
     # Optional: write to summary report
-    report_path = PROJECT_ROOT / "report" / "vector_index_summary.txt"
+    report_path = PROJECT_ROOT / "vector_db" / "vector_index_summary.txt"
     os.makedirs(report_path.parent, exist_ok=True)
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(f"📁 Files processed: {files_processed}\n")

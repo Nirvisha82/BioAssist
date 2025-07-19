@@ -1,0 +1,14 @@
+FROM python:3.13.3-slim
+
+WORKDIR /workspace
+
+# copy and install only your Python deps
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# copy your app code in
+COPY . .
+
+# drop into bash by default—run Streamlit yourself in the integrated terminal:
+CMD ["streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0"]
