@@ -5,14 +5,16 @@ import streamlit as st
 import google.generativeai as genai
 from src.retrieval.rag_pipeline import RAGPipeline
 from src.utils.config_manager import ConfigManager
-from src.utils.helpers import guardrail, rewrite_query
+from src.utils.helpers import guardrail, rewrite_query, verify_grounding
 from src.ingestion.vector_db_manager import VectorDBFactory
+from loguru import logger
 
-# Configuration
-CONFIG_PATH = "config/config.yaml"
+# Setup pipeline & model
+config = ConfigManager(config_path="config/config.yaml")
+
 STORAGE_DIR = "data"
 CONVO_FILE = os.path.join(STORAGE_DIR, "conversations.json")
-MIN_LOCAL_SIMILARITY = 0.30  # threshold for local document relevance
+MIN_LOCAL_SIMILARITY = config.get("retrieval.similarity_threshold")  # threshold for local document relevance
 
 # Ensure storage directory exists
 os.makedirs(STORAGE_DIR, exist_ok=True)
@@ -34,12 +36,11 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "conversation_store" not in st.session_state:
     st.session_state.conversation_store = load_conversations()
+    logger.info("Loaded conversation from local storage.")
 # Assign a fresh active_convo_id when starting or after clearing
 if "active_convo_id" not in st.session_state or not st.session_state.chat_history:
     st.session_state.active_convo_id = f"convo{len(st.session_state.conversation_store)+1}"
 
-# Setup pipeline & model
-config = ConfigManager(config_path=CONFIG_PATH)
 
 @st.cache_resource
 def setup_pipeline():
@@ -52,6 +53,7 @@ def setup_gemini():
 
 pipeline = setup_pipeline()
 gemini_model = setup_gemini()
+logger.info("Pipeline Setup Complete")
 
 # Prompt builder
 def build_prompt(chat_history, query, kb_chunks, web_chunks, re_written_query=""):
@@ -77,11 +79,9 @@ User Question: {query}
 Answer:
 """
 
-# Streamlit layout
+# <--------------------- Streamlit layout ------------->
 st.set_page_config(page_title="Bio Assist")
 st.markdown('<div class="big-title">🧠 BioAssist - Your Biomedical Web‑Enabled RAG Chatbot</div>', unsafe_allow_html=True)
-
-
 
 # --- Custom CSS to tighten the UI ---
 st.markdown("""
@@ -114,13 +114,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
 # Main chat input
 query = st.chat_input("Ask a question...")
 if query:
     with st.spinner("Processing..."):
         t0 = time.time()
-        # rewrite for pronouns
+
+        # rewrite
         rewritten = rewrite_query(gemini_model, st.session_state.chat_history, query)
 
         # init placeholders
@@ -150,15 +150,17 @@ if query:
                 "response_tokens": len(response_text.split()),
             }
 
-        # ② Non‑medical scope guardrail
+        # Non‑medical scope guardrail
         elif not guardrail(gemini_model, rewritten):
             response_text = "I'm sorry, I can only answer biomedical queries."
             kb_chunks = []
             web_chunks = []
 
         else:
+            # Relevant not interaction query.
             # local retrieval
             kb_chunks = pipeline._retrieve_from_kb(rewritten)
+
             # evaluate best local score
             best_score = max((c.similarity_score for c in kb_chunks), default=0.0)
             if best_score < MIN_LOCAL_SIMILARITY:
@@ -190,7 +192,15 @@ if query:
             res = gemini_model.generate_content(prompt)
             t2 = time.time()
             response_text = res.text.strip()
+            contexts = [c.content for c in kb_chunks] + [w.snippet for w in web_chunks]
+            # unsupported= verify_grounding(response_text, contexts,gemini_model)
+           
 
+            # if unsupported != []:
+            #     for uns in unsupported:
+            #         print(uns)
+            #     st.warning("⚠️ I’m not fully certain about these statements. Fact Check them.")
+        
             # record metrics
             metrics = {
                 "retrieval_time": round(t1 - t0, 3),
@@ -216,7 +226,8 @@ if query:
 
 # Sidebar: past conversations
 st.sidebar.title("📂 Past Conversations")
-store = load_conversations()
+# store = load_conversations()
+store = st.session_state.conversation_store
 if store:
     for cid, convo in store.items():
         title = convo[0]['user'] if convo else cid
@@ -240,9 +251,10 @@ if store:
                     key=f"del_{cid}",
                     use_container_width=True
                 ):
-                    tmp = store.copy()
-                    tmp.pop(cid, None)
-                    save_conversations(tmp)
+                    st.session_state.conversation_store.pop(cid, None)
+                    #persist to disk
+                    save_conversations(st.session_state.conversation_store)
+                    #stop this loop so the sidebar re‑renders without this expander
                     break
 else:
     st.sidebar.info("No previous conversations yet.")
@@ -255,7 +267,7 @@ with ctrl_cols[0]:
     # only show small selector + button
     txt = "\n\n".join([f"User: {x['user']}\nBot: {x['bot']}" for x in st.session_state.chat_history])
     fmt = st.selectbox(
-        "",            # no visible label
+        "BioAssist",    
         [".txt", ".md"],
         key="exp_fmt",
         label_visibility="collapsed"

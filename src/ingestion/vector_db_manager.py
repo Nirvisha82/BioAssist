@@ -334,7 +334,7 @@ class HybridRetriever:
     def __init__(self, vector_db: VectorDBInterface, config: ConfigManager):
         self.vector_db = vector_db
         self.config = config
-        self.similarity_threshold = config.get("retrieval.similarity_threshold", 0.7)
+        self.similarity_threshold = config.get("retrieval.similarity_threshold", 0.3)
     
     def retrieve(self, query: str, k: int = 5) -> List[RetrievalResult]:
         """Retrieve relevant documents using hybrid approach."""
