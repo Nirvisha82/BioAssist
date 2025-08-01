@@ -300,7 +300,7 @@ The system tracks comprehensive metrics for each interaction:
 
 👥 Authors
 
-Nirvisha Soni
+- **[Nirvisha Soni](https://github.com/Nirvisha82)**
 
 <p align="center">
   🧬 Built for the medical community with ❤️
