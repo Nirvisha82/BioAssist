@@ -1,82 +1,311 @@
-# BioAssist - Your Biomedical Web‑Enabled RAG Chatbot
+# BioAssist - Biomedical Web-Search Enabled RAG Chatbot
 
-A Retrieval-Augmented Generation (RAG) chatbot pipeline tailored for biomedical data, with live web-search augmentation via DuckDuckGo. This project ingests local documents (PDF, DOCX, TXT, CSV), preprocesses, chunks and embed them using Huggingface's all-MiniLM-L6-v2, builds a vector index (FAISS), and provides scripts and a simple interface to query the index and retrieve contextual chunks.
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.13+-blue.svg" alt="Python Version">
+  <img src="https://img.shields.io/badge/Streamlit-UI-FF4B4B.svg" alt="Streamlit">
+  <img src="https://img.shields.io/badge/RAG-Powered-green.svg" alt="RAG">
+  <img src="https://img.shields.io/badge/AI-Gemini%202.0-orange.svg" alt="Gemini AI">
+  <img src="https://img.shields.io/badge/Vector%20DB-FAISS-purple.svg" alt="FAISS">
+</p>
 
+BioAssist is an intelligent biomedical AI assistant that combines local knowledge base retrieval with live web search to provide accurate, grounded responses to healthcare and medical questions. Built with a robust RAG pipeline, it processes multiple document formats and ensures response reliability through advanced hallucination detection.
 
-## How to run: 
+## 🚀 Features
 
-**Add GEMINI API Key** to `llm.api_key` in `config/config.yaml`
+- **🧠 Hybrid RAG System**: Combines local document retrieval with live web search
+- **📚 Multi-Format Support**: Processes PDF, DOCX, TXT, and CSV files
+- **🔍 Web-Enhanced Retrieval**: DuckDuckGo integration for real-time information
+- **⚠️ Hallucination Detection**: Advanced grounding verification system
+- **🛡️ Medical Focus Guardrails**: Ensures responses stay within biomedical domain
+- **💬 Conversation Memory**: Maintains context across chat sessions
+- **📊 Performance Metrics**: Real-time tracking of retrieval and generation metrics
+- **🎨 Interactive UI**: Clean Streamlit interface with conversation management
 
-### A] Run directly using Docker.
-- Build the docker image.
+## 🛠️ Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| **Language** | Python 3.13+ |
+| **UI Framework** | Streamlit |
+| **Vector Database** | FAISS |
+| **Embeddings** | SentenceTransformers (all-MiniLM-L6-v2) |
+| **LLM** | Google Gemini 2.0 Flash |
+| **Web Search** | DuckDuckGo Search |
+| **Document Processing** | LangChain, PyPDF, pandas |
+| **Deployment** | Docker |
+
+## 🔧 Installation & Setup
+
+### Prerequisites
+
+- Python 3.13+
+- Docker (optional)
+- Google Gemini API Key
+
+### Method A: Docker Deployment (Recommended)
+
+1. **Clone Repository**
 ```bash
-docker build -f docker/DockerFile -t rag-web-bot:latest .
+git clone <repository-url>
+cd bioassist
 ```
-- Run the created docker image
-```bash
-docker run --rm -p 8501:8501 rag-web-bot:latest
-```
-The streamlit app will run on:
-`http://localhost:8501`
-### B] Using CLI
-#### 1 . Navigate to the folder
 
-```http
-  cd RAG-Chatbot
+2. **Configure API Key**
+Edit `config/config.yaml` and add your Gemini API key:
+```yaml
+llm:
+  api_key: "your_gemini_api_key_here"
+  model_name: "gemini-2.0-flash-exp"
 ```
-**NOTE:** Make sure `Python 3.13.3` is installed before proceeding.
-#### 2. Create & activate a virtual environment
+
+3. **Build Docker Image**
 ```bash
-# Create the virtual environment
+docker build -f docker/Dockerfile -t bioassist:latest .
+```
+
+4. **Run Container**
+```bash
+docker run --rm -p 8501:8501 bioassist:latest
+```
+
+5. **Access Application**
+Navigate to `http://localhost:8501`
+
+### Method B: Local Development
+
+1. **Clone Repository**
+```bash
+git clone <repository-url>
+cd bioassist
+```
+
+2. **Create Virtual Environment**
+```bash
+# Create virtual environment
 python -m venv .venv
 
-# Activate on Windows (PowerShell)
+# Activate (Windows PowerShell)
 .\.venv\Scripts\Activate.ps1
 
-# Activate on macOS/Linux
+# Activate (macOS/Linux)
 source .venv/bin/activate
 ```
 
-#### 3. Install Dependencies
+3. **Install Dependencies**
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### C] Using VS Code Devcontainers
-#### 1. Install Docker Desktop and VSCode Devcontainers extension
-#### 2. Open the `RAG-Chatbot` folder in VScode.
-#### 3. Opening the folder inside a container :
-- Choose `Re-open in Container` when the option appears.
-- Alternatively, hit `cmd+shift+p` or `ctrl+shift+p` and type `re-open in container`.
-#### 4. A docker image will be created along with a container (first time)
-#### 5. Once it shows that VS Code is connected to a Dev container, navigate to the integrated terminal.
+4. **Configure API Key**
+Edit `config/config.yaml` with your Gemini API key.
 
-### Launch the Streamlit UI
-
+5. **Launch Application**
 ```bash
 streamlit run main.py
 ```
-### Document Processing Pipeline:
-This step is not necessary to run the UI since a populated vector index is already provided. Incase a new one is to be build, delete the files in `vector_db` and run the following script:
 
+### Method C: VS Code Dev Containers
+
+1. **Install Prerequisites**
+   - Docker Desktop
+   - VS Code with Dev Containers extension
+
+2. **Open in Container**
+   - Open folder in VS Code
+   - Choose "Reopen in Container"
+   - Or use Cmd/Ctrl+Shift+P → "Reopen in Container"
+
+3. **Launch Application**
 ```bash
-python src/ingestion/build_vector_index.py 
-#python3 if running on mac terminal
+streamlit run main.py
 ```
 
-## Approach
+## 🏗️ System Architecture
 
-### Data Processing:
-**Document Ingestion** - Scan data_source/{pdf,docx,txt,csv} and load each file into memory. \\\
-**Preprocessing & Chunking** - Split each document into 500-token chunks with 100-token overlap. \\\
-**Embedding Generation** - Encode every chunk to a 384-dim vector using all-MiniLM-L6-v2 in batches of 32. \\\
-**Vector Index Building** - Store all embeddings in a FAISS index (persisted to disk) for fast NN search. 
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Streamlit UI  │    │   RAG Pipeline  │    │  Document       │
+│                 │────▶│                 │────▶│  Processor      │
+│                 │    │                 │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │                        │
+                                ▼                        ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Web Search    │    │   Query         │    │   FAISS         │
+│   (DuckDuckGo)  │◀───│   Processing    │────▶│   Vector DB     │
+│                 │    │                 │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │
+                                ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Hallucination │    │   Gemini 2.0    │    │   Response      │
+│   Detection     │◀───│   Generation    │────▶│   Assembly      │
+│                 │    │                 │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
 
-### RAG + Web Search:
-**Local Retrieval** - Given a query, embed it and retrieve top-5 similar chunks from FAISS. \\\
-**Live Web Search** - Always run a DuckDuckGo search (max 5 results), fetch & parse pages, chunk & embed live. \\\
-**Context Assembly** - Merge local + web chunks, enforce max context length (4,000 chars), dedupe overlaps. \\\
-**Answer Generation** - Feed merged context + question into Gemini-2.0-flash-lite to produce the final answer. \\\
-**Safety & Guardrails** - Apply hallucination detection and content filters before returning the response. \\\
-**Interface & Testing** - Provide CLI scripts (query_index.py, test_rag_web.py) and a Streamlit demo for end-to-end usage. 
+## 🔄 RAG Pipeline Workflow
+
+### 1. Document Processing
+```bash
+# Build vector index (optional - pre-built index included)
+python src/ingestion/build_vector_index.py
+```
+
+**Process Flow:**
+- **Document Ingestion**: Scans `data_source/{pdf,docx,txt,csv}` directories
+- **Preprocessing & Chunking**: Splits documents into 500-token chunks with 100-token overlap
+- **Embedding Generation**: Encodes chunks using all-MiniLM-L6-v2 (384-dim vectors)
+- **Vector Index Building**: Stores embeddings in FAISS index with persistence
+
+### 2. Query Processing
+
+**Local Retrieval:**
+- Query embedding generation
+- FAISS similarity search (top-5 chunks)
+- Similarity threshold filtering
+
+**Web Search Integration:**
+- DuckDuckGo search execution (max 5 results)
+- Page content extraction and parsing
+- Real-time content chunking and embedding
+
+**Context Assembly:**
+- Merge local + web chunks
+- Enforce max context length (4,000 chars)
+- Deduplicate overlapping content
+
+### 3. Response Generation
+
+**LLM Processing:**
+- Context + query prompt assembly
+- Gemini 2.0 Flash generation
+- Response post-processing
+
+**Quality Assurance:**
+- Hallucination detection analysis
+- Grounding verification
+- Content safety filtering
+
+## 📊 Configuration
+
+### Core Settings (`config/config.yaml`)
+
+```yaml
+# LLM Configuration
+llm:
+  api_key: "your_gemini_api_key"
+  model_name: "gemini-2.0-flash-exp"
+
+# Retrieval Settings
+retrieval:
+  top_k: 5
+  similarity_threshold: 0.3
+  max_context_length: 4000
+
+# Embeddings Configuration
+embeddings:
+  model_name: "sentence-transformers/all-MiniLM-L6-v2"
+  chunk_size: 500
+  chunk_overlap: 100
+  batch_size: 32
+
+# Vector Database
+vector_db:
+  type: "faiss"
+  persist_directory: "./vector_db"
+  collection_name: "biomedical_documents"
+
+# Web Search
+web_search:
+  num_results: 5
+  timeout: 5
+
+# Document Processing
+document_processing:
+  data_source_dir: "./data_source"
+  supported_formats: [".pdf", ".docx", ".txt", ".csv"]
+```
+
+## 🎯 Key Features Deep Dive
+
+### Hybrid RAG System
+- **Local Knowledge Base**: Pre-processed medical documents with instant retrieval
+- **Live Web Search**: Real-time medical information from trusted sources
+- **Adaptive Fallback**: Automatic web search when local similarity is low
+
+### Multi-Format Document Support
+- **PDF**: Medical papers, research documents
+- **DOCX**: Clinical guidelines, protocols
+- **TXT**: Plain text medical resources
+- **CSV**: Medical datasets with universal structure analysis
+
+### Advanced Safety Features
+- **Domain Guardrails**: Restricts responses to biomedical topics
+- **Hallucination Detection**: Sentence-level grounding verification
+- **Source Attribution**: Clear tracking of information sources
+- **Confidence Scoring**: Reliability metrics for each response
+
+### Conversation Management
+- **Session Persistence**: Chat history saved across sessions
+- **Context Awareness**: Maintains conversation flow
+- **Export Options**: Download conversations in multiple formats
+- **Conversation Analytics**: Performance metrics tracking
+
+## 🧪 Usage Examples
+
+### Basic Medical Query
+```
+User: "What are the symptoms of diabetes?"
+BioAssist: Provides comprehensive answer with sources from local medical documents and recent web sources.
+```
+
+### Research Question
+```
+User: "Latest treatments for Alzheimer's disease"
+BioAssist: Combines local research papers with current web search results for up-to-date information.
+```
+
+
+## 📈 Performance Metrics
+
+The system tracks comprehensive metrics for each interaction:
+
+- **Retrieval Time**: Local document search duration
+- **Generation Time**: LLM response generation time
+- **Context Length**: Total characters in prompt
+- **Response Quality**: Token count and grounding ratio
+- **Hallucination Detection**: Ungrounded statement count
+- **Source Distribution**: Local vs. web source breakdown
+
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/medical-enhancement`)
+3. Commit changes (`git commit -m 'Add medical feature'`)
+4. Push to branch (`git push origin feature/medical-enhancement`)
+5. Open a Pull Request
+
+## 🙏 Acknowledgments
+
+- Google Generative AI for Gemini 2.0 Flash
+- Hugging Face for SentenceTransformers
+- FAISS team for vector similarity search
+- Streamlit for the interactive interface
+- LangChain for document processing utilities
+
+---
+
+👥 Authors
+
+Nirvisha Soni
+
+<p align="center">
+  🧬 Built for the medical community with ❤️
+</p>
+
+<p align="center">
+  <em>Advancing healthcare through intelligent information retrieval</em>
+</p>
